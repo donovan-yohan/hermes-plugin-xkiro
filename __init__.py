@@ -5,8 +5,8 @@ Anthropic Messages. Wire model IDs stay in their full ``vendor/model`` form.
 
 Install under ``$HERMES_HOME/plugins/model-providers/xkiro`` (or via
 ``hermes plugins install donovan-yohan/hermes-plugin-xkiro --enable``).
-Anthropic Messages still needs a one-host core allowlist in Hermes so
-``api.xkiro.com`` uses Bearer auth and keeps catalog ids verbatim.
+Anthropic Messages needs Hermes core support for Bearer auth on
+``api.xkiro.com`` and profile-declared verbatim catalog ids.
 """
 
 from __future__ import annotations
@@ -168,6 +168,9 @@ xkiro_anthropic = XKiroAnthropicProfile(
     fallback_models=(),
     default_aux_model="",
 )
+# Assigned after construction so the plugin remains importable on Hermes
+# versions predating this generic ProviderProfile field; older cores ignore it.
+xkiro_anthropic.preserve_anthropic_model_id = True
 
 register_provider(xkiro)
 register_provider(xkiro_anthropic)

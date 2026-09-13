@@ -53,6 +53,7 @@ def test_xkiro_profiles_are_registered_with_shared_credentials(profiles):
     assert anthropic.name == "xkiro-anthropic"
     assert anthropic.display_name == "xKiro (Anthropic)"
     assert anthropic.api_mode == "anthropic_messages"
+    assert anthropic.preserve_anthropic_model_id is True
     assert anthropic.base_url == profile.base_url
     assert anthropic.env_vars == ("XKIRO_API_KEY", "XKIRO_ANTHROPIC_BASE_URL")
     assert anthropic.default_aux_model == ""
