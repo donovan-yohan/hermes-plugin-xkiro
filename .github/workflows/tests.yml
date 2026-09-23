@@ -1,0 +1,47 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The plugin imports `providers` / `hermes_cli` from a Hermes checkout
+      # (see README "Tests"); without it the suite cannot even import.
+      - name: Check out Hermes Agent (test host)
+        uses: actions/checkout@v4
+        with:
+          repository: NousResearch/hermes-agent
+          path: hermes-agent
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # Install only what the suite needs. The full hermes-agent dependency
+      # set is huge; `model_tools` + provider discovery pull a much smaller
+      # graph. If this fragment drifts, prefer widening it over pinning to a
+      # snapshot of hermes main.
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml python-dotenv requests pydantic httpx
+
+      - name: Run tests
+        env:
+          # Suite asserts profiles registered in an isolated home holding only
+          # this plugin; must not see a developer machine's installed plugins.
+          HERMES_HOME: /tmp/hermes-test-home
+        run: |
+          mkdir -p "$HERMES_HOME/plugins/xkiro-provider"
+          git ls-files -z | while IFS= read -r -d '' f; do
+            mkdir -p "$HERMES_HOME/plugins/xkiro-provider/$(dirname "$f")"
+            cp "$f" "$HERMES_HOME/plugins/xkiro-provider/$f"
+          done
+          PYTHONPATH="$GITHUB_WORKSPACE/hermes-agent" pytest tests/test_xkiro_provider.py -q
