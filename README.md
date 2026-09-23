@@ -38,11 +38,13 @@ Restart the session or gateway after install so discovery reloads.
 
 ## Catalog
 
-xKiro's `/v1/models` endpoint is public. This plugin fetches it live (key optional). Chat-only rows are kept; image/other modalities are dropped. There is no static fallback list, so a failed fetch leaves the picker empty until the catalog is reachable.
+xKiro's `/v1/models` endpoint is public. This plugin fetches it live (key optional). Chat-only rows are kept; image/other modalities are dropped.
+
+Both routes also carry a small static `fallback_models` list. Hermes only uses it when the live catalog is unavailable, so it never masks real results. It exists because the Desktop and GUI pickers open from a cache-only read: on a cold catalog cache the provider row would otherwise report zero models and the menu drops the whole provider group. The static list keeps both entries selectable and lets the background refresh fill in the full catalog.
 
 ## Anthropic route
 
-`xkiro-anthropic` uses `api_mode=anthropic_messages`. Without the Hermes host allowlist, that route sends `x-api-key` and normalizes `anthropic/claude-*` to a bare Claude id, both of which fail on xKiro.
+`xkiro-anthropic` uses `api_mode=anthropic_messages`. xKiro itself accepts both `x-api-key` and Bearer auth with full `anthropic/claude-*` ids (verified against `/v1/messages`). However, Hermes core strips the `anthropic/` prefix and version dots on the Anthropic Messages path (`normalize_model_name`), and does not yet read this plugin's `preserve_anthropic_model_id` attribute, so main-turn requests send a bare Claude id that xKiro 404s. Until a Hermes core PR honors that flag (or allowlists `api.xkiro.com`), picks via this route fall back to the configured fallback chain. The chat route (`xkiro`) is unaffected and fully working.
 
 ## Tests
 

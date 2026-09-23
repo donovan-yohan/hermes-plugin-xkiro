@@ -48,7 +48,10 @@ def test_xkiro_profiles_are_registered_with_shared_credentials(profiles):
     assert profile.base_url == "https://api.xkiro.com/v1"
     assert profile.env_vars == ("XKIRO_API_KEY", "XKIRO_BASE_URL")
     assert profile.default_aux_model == "qwen/qwen3.5-flash:free"
-    assert profile.fallback_models == ()
+    # Static picker floor, not an empty tuple: a cache-cold GUI open must still list the row.
+    assert profile.fallback_models
+    assert all(isinstance(model, str) and model.strip() for model in profile.fallback_models)
+    assert "anthropic/claude-opus-5" in profile.fallback_models
 
     assert anthropic.name == "xkiro-anthropic"
     assert anthropic.display_name == "xKiro (Anthropic)"

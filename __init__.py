@@ -151,7 +151,15 @@ xkiro = XKiroProfile(
     signup_url="https://xkiro.com/",
     base_url=_XKIRO_BASE,
     models_url=_XKIRO_MODELS_URL,
-    fallback_models=(),
+    # Static floor for the same reason the built-in HTTP providers carry one: the Desktop/GUI
+    # picker's normal open is a cache-only read (``model.options`` without ``refresh``), so a
+    # cold catalog cache reports zero models and the menu drops the whole provider group
+    # (``groupModels`` skips a provider with no families). Hermes only consults this list when
+    # the live catalog is unavailable, so it never masks real results.
+    fallback_models=(
+        "anthropic/claude-opus-5", "openai/gpt-5.6-sol", "x-ai/grok-4.6",
+        "deepseek/deepseek-v4.1-flash", "qwen/qwen3.5-flash:free",
+    ),
     default_aux_model="qwen/qwen3.5-flash:free",
 )
 
@@ -165,7 +173,10 @@ xkiro_anthropic = XKiroAnthropicProfile(
     signup_url="https://xkiro.com/",
     base_url=_XKIRO_BASE,
     models_url=_XKIRO_MODELS_URL,
-    fallback_models=(),
+    # Same static floor as the chat route, restricted to the Claude ids this route serves
+    # (``fetch_models`` filters the shared catalog to ``anthropic/claude-*``).
+    fallback_models=("anthropic/claude-opus-5", "anthropic/claude-sonnet-5",
+                     "anthropic/claude-haiku-4.5"),
     default_aux_model="",
 )
 # Assigned after construction so the plugin remains importable on Hermes
