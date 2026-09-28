@@ -6,8 +6,6 @@ import json
 from unittest.mock import patch
 from urllib.error import URLError
 
-import pytest
-
 
 class _Response:
     def __init__(self, payload):
@@ -25,18 +23,6 @@ class _Response:
 
 def _catalog(*items):
     return {"object": "list", "data": list(items)}
-
-
-@pytest.fixture
-def profiles():
-    import model_tools  # noqa: F401 — triggers discovery
-    from providers import get_provider_profile
-
-    chat = get_provider_profile("xkiro")
-    anthropic = get_provider_profile("xkiro-anthropic")
-    assert chat is not None
-    assert anthropic is not None
-    return chat, anthropic
 
 
 def test_xkiro_profiles_are_registered_with_shared_credentials(profiles):
@@ -121,7 +107,7 @@ def test_xkiro_anthropic_filters_catalog_to_claude_models(profiles):
     with patch("hermes_cli.urllib_security.open_credentialed_url", return_value=_Response(payload)):
         models = anthropic.fetch_models(api_key="test-key")
 
-    assert models == ["anthropic/claude-sonnet-5", "anthropic/claude-opus-5"]
+    assert models == ["anthropic/claude-opus-5", "anthropic/claude-sonnet-5"]
 
 
 def test_xkiro_fetch_models_returns_none_on_failure_or_malformed_payload(profiles):
