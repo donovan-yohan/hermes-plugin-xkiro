@@ -196,5 +196,11 @@ xkiro_anthropic = XKiroAnthropicProfile(
 # versions predating this generic ProviderProfile field; older cores ignore it.
 xkiro_anthropic.preserve_anthropic_model_id = True
 
+# Use the shared PR121149 catalog-mode contract, not a plugin-specific switch.
+# Post-construction assignment also keeps older ProviderProfile constructors usable.
+for profile in (xkiro, xkiro_anthropic):
+    profile.live_catalog_mode = "authoritative"
+    profile.public_model_catalog = True
+
 register_provider(xkiro)
 register_provider(xkiro_anthropic)

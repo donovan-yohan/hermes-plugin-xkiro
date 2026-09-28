@@ -18,7 +18,10 @@ jobs:
       - name: Check out real Hermes Agent (test host)
         uses: actions/checkout@v4
         with:
-          repository: NousResearch/hermes-agent
+          repository: donovan-yohan/hermes-agent
+          # PR126899 contract, aligned with PR121149. Switch to an explicit
+          # upstream revision only after the complete contract lands there.
+          ref: c9230af278d050f89be1894aa14fabadf5b2c486
           path: hermes-agent
       - uses: actions/setup-python@v5
         with:
