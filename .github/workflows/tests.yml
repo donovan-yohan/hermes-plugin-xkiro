@@ -29,7 +29,7 @@ jobs:
       # Real provider discovery and credential-safe HTTP; no model_tools import
       # or mocked ProviderProfile. Keep this small dependency set explicit.
       - name: Install test dependencies
-        run: python -m pip install pytest pyyaml python-dotenv requests pydantic httpx
+        run: python -m pip install pytest pyyaml ruamel.yaml python-dotenv requests pydantic httpx
       - name: Run isolated checkout integration tests
         env:
           PYTHONPATH: ${{ github.workspace }}/hermes-agent

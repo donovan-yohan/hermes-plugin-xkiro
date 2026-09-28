@@ -75,7 +75,7 @@ The plugin already reads fresh pricing metadata through `fetch_model_pricing()` 
 
 ## Tests
 
-From this plugin checkout, using a Python environment with `pytest`, `pyyaml`, `python-dotenv`, `requests`, `pydantic` and `httpx` and an actual Hermes source checkout:
+From this plugin checkout, using a Python environment with `pytest`, `pyyaml`, `ruamel.yaml`, `python-dotenv`, `requests`, `pydantic` and `httpx` and an actual Hermes source checkout:
 
 ```bash
 PYTHONPATH=/path/to/hermes-agent python -m pytest tests -ra
