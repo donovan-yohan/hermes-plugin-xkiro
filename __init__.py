@@ -115,11 +115,24 @@ class XKiroProfile(ProviderProfile):
         items = _fetch_xkiro_catalog(api_key=api_key, base_url=base_url, timeout=timeout)
         if items is None:
             return None
-        return list(dict.fromkeys(
-            item["id"].strip()
-            for item in items
-            if isinstance(item.get("id"), str) and item["id"].strip()
-        ))
+        # First occurrence wins for duplicate IDs, including its published owner.
+        catalog = {}
+        for item in items:
+            model_id = item.get("id")
+            if not isinstance(model_id, str) or not model_id.strip():
+                continue
+            model_id = model_id.strip()
+            catalog.setdefault(model_id, item)
+
+        def order(model_id: str) -> tuple[str, str, str]:
+            owner = catalog[model_id].get("owned_by")
+            owner = owner.strip() if isinstance(owner, str) else ""
+            if not owner or owner.casefold() == "api":
+                # The namespace is authoritative, unlike guessed family/recency.
+                owner = model_id.partition("/")[0] if "/" in model_id else ""
+            return owner.casefold(), model_id.casefold(), model_id
+
+        return sorted(catalog, key=order)
 
     def fetch_model_pricing(
         self, *, api_key: str | None = None, base_url: str | None = None, timeout: float = 8.0,
@@ -157,8 +170,8 @@ xkiro = XKiroProfile(
     # (``groupModels`` skips a provider with no families). Hermes only consults this list when
     # the live catalog is unavailable, so it never masks real results.
     fallback_models=(
-        "anthropic/claude-opus-5", "openai/gpt-5.6-sol", "x-ai/grok-4.6",
-        "deepseek/deepseek-v4.1-flash", "qwen/qwen3.5-flash:free",
+        "anthropic/claude-opus-5", "deepseek/deepseek-v4.1-flash",
+        "openai/gpt-5.6-sol", "qwen/qwen3.5-flash:free", "x-ai/grok-4.6",
     ),
     default_aux_model="qwen/qwen3.5-flash:free",
 )
@@ -175,8 +188,8 @@ xkiro_anthropic = XKiroAnthropicProfile(
     models_url=_XKIRO_MODELS_URL,
     # Same static floor as the chat route, restricted to the Claude ids this route serves
     # (``fetch_models`` filters the shared catalog to ``anthropic/claude-*``).
-    fallback_models=("anthropic/claude-opus-5", "anthropic/claude-sonnet-5",
-                     "anthropic/claude-haiku-4.5"),
+    fallback_models=("anthropic/claude-haiku-4.5", "anthropic/claude-opus-5",
+                     "anthropic/claude-sonnet-5"),
     default_aux_model="",
 )
 # Assigned after construction so the plugin remains importable on Hermes

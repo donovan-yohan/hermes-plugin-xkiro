@@ -38,9 +38,17 @@ Restart the session or gateway after install so discovery reloads.
 
 ## Catalog
 
-xKiro's `/v1/models` endpoint is public. This plugin fetches it live (key optional). Chat-only rows are kept; image/other modalities are dropped.
+xKiro's `/v1/models` endpoint is public. Every call to the plugin's `fetch_models()` reads the current catalog (key optional); there is no plugin catalog cache or curated live-model list to update. Newly published IDs appear on the next successful fetch without a commit or reinstall. Rows with `modality: chat` or no modality are kept; image/other modalities are dropped. Full IDs, including vendor prefixes, version dots and suffixes, are preserved, with surrounding whitespace removed and duplicates collapsed.
 
-Both routes also carry a small static `fallback_models` list. Hermes only uses it when the live catalog is unavailable, so it never masks real results. It exists because the Desktop and GUI pickers open from a cache-only read: on a cold catalog cache the provider row would otherwise report zero models and the menu drops the whole provider group. The static list keeps both entries selectable and lets the background refresh fill in the full catalog.
+The live list is grouped by the catalog's `owned_by` provider and ordered alphabetically within each group by full model ID (case-insensitive, exact ID as a deterministic tie-break). When ownership is missing, malformed or the generic `api`, the exact `vendor/` namespace supplies the provider. Unqualified IDs with no usable owner have no provider and sort first. Ownership is read again on every fetch; no vendor table, model-family heuristic or release-recency inference is involved. Placeholder `created` values are not used. `xkiro-anthropic` retains this ordering while selecting only `anthropic/claude-*` IDs.
+
+Hermes may cache these results independently. Current Desktop builds normally open the picker from a cache-only read; the core catalog cache has a one-hour freshness window and stale-while-revalidate behavior. Use **Refresh Models** to request a fresh catalog immediately. This plugin does not bypass or patch the core cache. Ordering gives contiguous vendor groups inside each xKiro route; visual vendor headings are a picker responsibility, not a new routing provider per vendor.
+
+Both routes retain the existing small static `fallback_models` floor, now alphabetically ordered. It keeps the routes visible on cache-cold/offline picker opens; it is not a complete or guaranteed-current catalog. Successful live plugin fetches return only endpoint IDs, never merge the floor. Refresh to obtain the current selection. A failed plugin fetch returns `None`; a valid empty catalog returns `[]`.
+
+### Metadata and core support
+
+The plugin already reads fresh pricing metadata through `fetch_model_pricing()` and now uses fresh ownership metadata to order `fetch_models()`. Prices are normalized from documented USD per million tokens with `Decimal`; free prices stay zero. The current `ProviderProfile` has no generic HTTP catalog-metadata/picker-pricing hook, so this change does not introduce an unused `fetch_model_metadata()` method or pretend price, capability, context-length or vendor-heading metadata reaches the picker. The existing pricing method remains available to direct callers but is not consumed by core. Rich dynamic picker metadata needs a separate generic core contract; no core changes are required for this plugin's ordered catalog.
 
 ## Anthropic route
 
@@ -48,8 +56,12 @@ Both routes also carry a small static `fallback_models` list. Hermes only uses i
 
 ## Tests
 
-From a Hermes checkout that can import `providers` and `hermes_cli`:
+From this plugin checkout, using a Python environment with `pytest`, `pyyaml`, `python-dotenv`, `requests`, `pydantic` and `httpx` and an actual Hermes source checkout:
 
 ```bash
-PYTHONPATH=/path/to/hermes-agent pytest tests/test_xkiro_provider.py -q
+PYTHONPATH=/path/to/hermes-agent python -m pytest tests -ra
+# Optional public-network check: no API key or paid inference, includes both routes.
+XKIRO_LIVE_TEST=1 PYTHONPATH=/path/to/hermes-agent python -m pytest tests/test_live_catalog.py -s -ra
 ```
+
+The fixture copies this checkout's plugin into a temporary `HERMES_HOME`, loads it through real Hermes provider discovery, and verifies the loaded class's source path and bytes. It does not import `model_tools`, use an installed xKiro plugin, mock `ProviderProfile`, or modify your profiles. Deterministic tests mock only catalog HTTP responses. CI checks out upstream Hermes and exercises the same integration; the opt-in live test is excluded from required CI to avoid making upstream availability a merge gate.
